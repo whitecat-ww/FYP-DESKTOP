@@ -251,7 +251,7 @@ def extract_features(url):
 
 # 更新后的特征列表
 FEATURE_ORDER = [
-    'hostname_length', 'path_length', 'double_slash_in_path', 'is_https',
+    'hostname_length', 'path_length', 'double_slash_in_path'
     'has_ip', 'subdomain_cnt', 'suspicious_tokens', 'has_at',
     'hyphen_count', 'digit_count', 'entropy', 'domain_age_days', 'ssl_days_left',
     'has_login_form', 'num_inputs', 'num_iframes', 'num_scripts', 'meta_refresh', 
