@@ -8,10 +8,10 @@ from tqdm import tqdm
 from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
 import matplotlib.pyplot as plt
 import seaborn as sns
-from feature_extractor import extract_features, features_to_vector, FEATURE_ORDER
+from feature_extractor import extract_features, features_to_vector,FEATURE_ORDER
 
 # --- 配置 ---
-MAX_WORKERS = 50  # 线程数，可根据你的网络状况调整
+MAX_WORKERS = 10  # 线程数，可根据你的网络状况调整
 
 BASE_DIR = os.path.dirname(__file__)
 TEST_CSV = os.path.join(BASE_DIR, "../data/unseen_test_dataset.csv") 

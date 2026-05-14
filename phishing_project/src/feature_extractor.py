@@ -13,6 +13,11 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import multiprocessing
 import urllib3
+import warnings
+from bs4 import XMLParsedAsHTMLWarning
+
+# === 屏蔽 BeautifulSoup 的 XML 解析警告，保持终端清爽 ===
+warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 
 # === 注释掉全局超时，以免影响 Flask 网页后台的稳定性 ===
 # socket.setdefaulttimeout(60) 
@@ -99,26 +104,29 @@ def get_domain_age_days(domain, timeout=5):
         delta = datetime.now() - cd
         return delta.days
         
-    return -1 # <--- 缩进已修复
+    return -1 
 
-# SSL info via socket (Already had timeout, ensuring it's strict)
+# SSL info via socket (加入了 SNI，并移除了会导致空字典的 CERT_NONE)
 def get_ssl_days_left(hostname, port=443, timeout=3):
+    if not hostname:
+        return -999
     try:
+        # 建立默认严格的 SSL 上下文
         context = ssl.create_default_context()
-        context.check_hostname = False # Prevent some lookup hangs
-        context.verify_mode = ssl.CERT_NONE # We just want the cert info
         with socket.create_connection((hostname, port), timeout=timeout) as sock:
+            # 传入 server_hostname 完美解决大厂的 SNI 拦截问题
             with context.wrap_socket(sock, server_hostname=hostname) as ssock:
-                cert = ssock.getpeercert()
+                cert = ssock.getpeercert() # 这次绝对能拿到非空的字典了！
                 notAfter = cert.get('notAfter')
                 if notAfter:
                     try:
                         exp = datetime.strptime(notAfter, '%b %d %H:%M:%S %Y %Z')
-                        exp = exp.replace(tzinfo=None) # <--- [成功抹除时区信息]
+                        exp = exp.replace(tzinfo=None)
                         return (exp - datetime.now()).days
                     except:
                         return -999
     except Exception:
+        # 如果目标网站没有证书、或者证书过期/无效，会触发异常，返回 -999
         return -999
     return -999
 
@@ -249,9 +257,9 @@ def extract_features(url):
     f.update(html_feats)
     return f
 
-# 更新后的特征列表
+# 更新后的特征列表 (包含 ssl_days_left 完美回归)
 FEATURE_ORDER = [
-    'hostname_length', 'path_length', 'double_slash_in_path'
+    'hostname_length', 'path_length', 'double_slash_in_path', 
     'has_ip', 'subdomain_cnt', 'suspicious_tokens', 'has_at',
     'hyphen_count', 'digit_count', 'entropy', 'domain_age_days', 'ssl_days_left',
     'has_login_form', 'num_inputs', 'num_iframes', 'num_scripts', 'meta_refresh', 

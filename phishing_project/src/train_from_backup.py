@@ -18,12 +18,29 @@ def main():
     print("📥 正在加载备份数据...")
     df = pd.read_csv(BACKUP_PATH)
     
-    # 分离特征和标签，同时强制剔除可能导致作弊的特征
-    drop_cols = ['label_encoded', 'is_https', 'https_token']
-    X = df.drop(columns=[c for c in drop_cols if c in df.columns])
-    y = df['label_encoded']
+    # === 新增：数据体检与清洗 ===
+    print("\n--- 🔍 数据健康度体检 ---")
+    print(f"清洗前总数据量: {len(df)} 条")
+    print("清洗前标签分布:\n", df['label_encoded'].value_counts())
     
-    print(f"📊 成功读取数据: {len(X)} 条, 当前参与训练的特征数: {len(X.columns)}")
+    # 过滤掉“彻底提取失败”的垃圾数据
+    # 如果 SSL 是 -999，且域名年龄是 -1，且没有任何 HTML 输入框，说明这个网站 100% 被拦截或者死链了
+    df_clean = df[~((df['ssl_days_left'] == -999) & (df['domain_age_days'] == -1) & (df['num_inputs'] == 0))]
+    
+    print(f"\n✨ 清洗掉被拦截的死链接后，剩余有效数据: {len(df_clean)} 条")
+    print("清洗后标签分布:\n", df_clean['label_encoded'].value_counts())
+    
+    if len(df_clean) < 50:
+        print("⚠️ 糟糕！清洗后有效数据太少，说明你跑的数据几乎全被封禁了，模型无法训练！")
+        return
+    # ==========================
+    
+    # 使用清洗后的数据分离特征和标签
+    drop_cols = ['label_encoded', 'is_https', 'https_token']
+    X = df_clean.drop(columns=[c for c in drop_cols if c in df_clean.columns])
+    y = df_clean['label_encoded']
+    
+    print(f"📊 当前参与训练的特征数: {len(X.columns)}")
     
     print("✂️ 正在分割训练集和测试集...")
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)
@@ -46,7 +63,6 @@ def main():
     
     # 保存模型
     os.makedirs(os.path.dirname(MODEL_OUT), exist_ok=True)
-    # 注意：我们要把最终保留下来的特征列表存进去，方便 app.py 调用
     joblib.dump({'model': clf, 'feature_order': list(X.columns)}, MODEL_OUT)
     print(f"\n✅ 太棒了！模型已成功生成并保存到: {MODEL_OUT}")
 

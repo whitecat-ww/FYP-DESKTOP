@@ -13,6 +13,10 @@ if not os.path.exists(MODEL_PATH):
 
 m = joblib.load(MODEL_PATH)
 clf = m['model']
+
+# === 新增：强制让模型在网页端使用 CPU 进行预测，消除警告 ===
+clf.set_params(device="cpu") 
+
 feat_order = m['feature_order']
 
 @app.route("/", methods=["GET", "POST"])

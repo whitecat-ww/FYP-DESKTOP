@@ -11,5 +11,5 @@ importances = model.feature_importances_
 df = pd.DataFrame({'Feature': features, 'Importance': importances})
 df = df.sort_values(by='Importance', ascending=False)
 
-print("🏆 模型最看重的前 15 个特征 (规则)：")
-print(df.head(15))
+print("🏆 模型最看重的前 18 个特征 (规则)：")
+print(df.head(18))
